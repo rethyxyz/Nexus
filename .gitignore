@@ -1,0 +1,8 @@
+build
+dist
+client.py_bak
+server.py_bak
+client.spec
+client_b64*.py
+client_obf*.py
+Thumbs.db
