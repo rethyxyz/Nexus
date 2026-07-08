@@ -1,3 +1,3 @@
-# <a href="https://articles.rethy.xyz/articles/nexus">Nexus</a>
+# Nexus
 
-https://articles.rethy.xyz/articles/nexus
+<a href="https://articles.rethy.xyz/articles/nexus">https://articles.rethy.xyz/articles/nexus.php</a>
