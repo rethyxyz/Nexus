@@ -5,7 +5,7 @@ Use the --help command for more information.
 
 from __future__ import annotations
 from cryptography.fernet import Fernet, InvalidToken
-import json, socket, struct, sys, shlex, threading, pathlib, datetime
+import datetime, hmac, json, pathlib, shlex, socket, struct, sys, threading
 
 DEBUG = True
 
@@ -141,6 +141,15 @@ def read_exact_bytes(sock: socket.socket, n: int) -> bytes:
         buf += chunk
     return buf
 
+def _credentials_valid(user, password) -> bool:
+    '''Return True only for a known account with an exactly matching password.'''
+    if not isinstance(user, str) or not isinstance(password, str):
+        return False
+    expected = ACCOUNTS.get(user)
+    if expected is None:
+        return False
+    return hmac.compare_digest(expected.encode("utf-8"), password.encode("utf-8"))
+
 def _client_thread(conn: socket.socket, peer):
     '''
     1. Expects an AUTH packet first (cmd 254).
@@ -161,8 +170,10 @@ def _client_thread(conn: socket.socket, peer):
             raise ValueError("expected auth packet first")
 
         auth = json.loads(pl.decode())
+        if not isinstance(auth, dict):
+            raise ValueError("auth payload must be an object")
         user, pw = auth.get("username"), auth.get("password")
-        if ACCOUNTS.get(user) != pw:
+        if not _credentials_valid(user, pw):
             raise ValueError("invalid credentials")
 
         # successful login
@@ -170,6 +181,8 @@ def _client_thread(conn: socket.socket, peer):
         # back to blocking mode
         conn.settimeout(None)
         meta = auth.get("meta", {})
+        if not isinstance(meta, dict):
+            raise ValueError("metadata must be an object")
 
         with _client_lock:
             cid = next_free_id()
