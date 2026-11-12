@@ -5,7 +5,7 @@ Use the --help command for more information.
 
 from __future__ import annotations
 from cryptography.fernet import Fernet, InvalidToken
-import datetime, hmac, json, pathlib, shlex, socket, struct, sys, threading
+import datetime, hmac, json, pathlib, socket, struct, sys, threading
 
 DEBUG = True
 
@@ -253,12 +253,28 @@ def _print_clients():
                   f"{inf.get('public_ip',''):<15}"
                   f"{inf['addr']}:{inf['port']}")
 
-def _send_cmd_cli(tokens: list[str]):
-    if len(tokens) < 3 or not tokens[1].isdigit() or not tokens[2].isdigit():
+def _parse_send_command(line: str) -> tuple[int, int, bytes] | None:
+    '''Parse --send while preserving the payload exactly as typed.'''
+    parts = line.split(maxsplit=3)
+    if len(parts) < 3 or parts[0] != "--send":
+        return None
+    try:
+        cid, cmd = int(parts[1]), int(parts[2])
+    except ValueError:
+        return None
+    if not 0 <= cmd <= 255:
+        return None
+    payload = parts[3].encode() if len(parts) == 4 else b""
+    if len(payload) >= 2 and payload[:1] == payload[-1:] and payload[:1] in (b'"', b"'"):
+        payload = payload[1:-1]
+    return cid, cmd, payload
+
+def _send_cmd_cli(line: str):
+    parsed = _parse_send_command(line)
+    if parsed is None:
         print("usage: --send <id> <cmd> [payload]"); return
-    cid, cmd = int(tokens[1]), int(tokens[2])
-    payload  = " ".join(tokens[3:]).encode()
-    
+    cid, cmd, payload = parsed
+
     # Special handling for piano mode
     if cmd == PIANO_CMD:
         _piano_mode_via_send(cid)
@@ -424,7 +440,7 @@ def main():
         except (EOFError, KeyboardInterrupt):
             print(); sys.exit()
 
-        tokens = shlex.split(line); op = tokens[0] if tokens else ""
+        parts = line.split(maxsplit=1); op = parts[0] if parts else ""
 
         if op == "--serve":
             if listener and listener.is_alive():
@@ -435,7 +451,7 @@ def main():
         elif op == "--list":
             _print_clients()
         elif op == "--send":
-            _send_cmd_cli(tokens)
+            _send_cmd_cli(line)
         elif op == "--help":
             _print_help()
         elif op in {"exit","quit"}:
