@@ -5,7 +5,7 @@ Use the --help command for more information.
 
 from __future__ import annotations
 from cryptography.fernet import Fernet, InvalidToken
-import datetime, hmac, json, pathlib, socket, struct, sys, threading
+import datetime, hmac, json, pathlib, re, socket, struct, sys, threading
 
 DEBUG = True
 
@@ -97,12 +97,19 @@ def next_free_id() -> int:
     return cid
 
 def save_binary(payload: bytes, meta: dict):
-    ts   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    kind = meta.get("kind", "blob")
-    ext  = meta.get("ext",  "bin")
+    if not isinstance(meta, dict):
+        raise ValueError("binary metadata must be an object")
+
+    ts   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    kind = re.sub(r"[^A-Za-z0-9_-]", "_", str(meta.get("kind", "blob")))[:64] or "blob"
+    ext  = re.sub(r"[^A-Za-z0-9]", "", str(meta.get("ext", "bin")))[:16] or "bin"
+
     if "name" in meta:
-        # preserve original file name, prefix with timestamp
-        fname = pathlib.Path(f"{ts}_{meta['name']}")
+        # Reduce client-supplied names to a single safe path component.
+        name = str(meta["name"]).replace("\\", "/")
+        name = pathlib.Path(name).name
+        name = re.sub(r"[\x00-\x1f\x7f-\x9f]", "_", name) or f"{kind}.{ext}"
+        fname = pathlib.Path(f"{ts}_{name}")
     else:
         fname = pathlib.Path(f"{kind}_{ts}.{ext}")
 
