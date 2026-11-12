@@ -23,7 +23,6 @@ Nexus consists of a command-and-control server and a remote client. The server e
 client.py                                      Remote client
 server.py                                      Command-and-control server
 icon.png                                       Generic icon used for builds
-docs/code-review-findings.md                   Outstanding review findings
 helpers-code-generation/build-client.sh        Client build helper
 helpers-deployment/deploy_windows.py           Windows persistence helper
 helpers-encoding/encode_py_base64.py           Base64 wrapper generator
@@ -198,13 +197,10 @@ python3 helpers-encoding/obfuscate_py.py client.py
 
 This creates `client_obf.py` with renamed identifiers, stripped docstrings, and Base64-wrapped string literals.
 
-## Known issues
+## Known limitations
 
-The current review backlog is in [`docs/code-review-findings.md`](docs/code-review-findings.md). The critical items fixed so far are:
-
-- Server history initialization on Linux and macOS
-- Authentication bypass with missing or null credentials
-- Command parsing crashes and payload corruption
-- Client-controlled capture paths
-
-Remaining high-priority items include serialized frame writes, webcam stream state handling, chunked file transfers, audio duration limits, connection timeouts, replay protection, and secret management.
+- The default Fernet key and example accounts are committed; replace them before use.
+- Screen, camera, audio, and keyboard features require a graphical session.
+- Port `613` may require elevated privileges on Linux.
+- The shared key is embedded in client builds; treat the client binary as untrusted.
+- The implementation has additional reliability and security limitations; review the source before deployment.
