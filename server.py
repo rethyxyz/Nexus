@@ -56,7 +56,7 @@ MAX_CIPHER   = 104_857_600
 BIN_OUT      = 2
 STREAM_FRAME = 3                
 
-HIST_FILE  = ".server_hist"
+HIST_FILE  = pathlib.Path(".server_hist")
 
 # NOTE: This has to be defined before the readline import attempt is made.
 def debug(msg: str):
@@ -64,14 +64,17 @@ def debug(msg: str):
         print(f"[DEBUG] {msg}")
 
 try:
-    import readline, atexit, pathlib, os
-    hfile = f"{HIST_FILE}"
-    debug(hfile)
-    if hfile.exists(): readline.read_history_file(hfile)
-    atexit.register(readline.write_history_file, hfile)
+    import readline, atexit
 except ImportError:
     debug("Windows detected - readline not needed")
-    pass
+else:
+    debug(str(HIST_FILE))
+    try:
+        if HIST_FILE.exists():
+            readline.read_history_file(str(HIST_FILE))
+    except OSError as e:
+        debug(f"history file unavailable: {e}")
+    atexit.register(readline.write_history_file, str(HIST_FILE))
 
 def init_message():
     # I could math all of this shit out dynamically, but I don't think it would matter.
